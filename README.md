@@ -15,7 +15,7 @@ in a folder you own — no database, no lock-in, no accounts.
   <img alt="platform" src="https://img.shields.io/badge/macOS-Apple%20Silicon-2f2f2f">
   <img alt="electron" src="https://img.shields.io/badge/electron-43-2f2f2f">
   <img alt="deps" src="https://img.shields.io/badge/runtime%20deps-1-2f2f2f">
-  <img alt="license" src="https://img.shields.io/badge/license-MIT-2f2f2f">
+  <img alt="license" src="https://img.shields.io/badge/license-AGPL--3.0-2f2f2f">
 </p>
 
 <p align="center">
@@ -67,4 +67,4 @@ Backlinks, tags, and search are computed in memory — no index files, no databa
 
 ## License
 
-MIT
+AGPL-3.0
