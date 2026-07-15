@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  html, body { margin: 0; background: #1d1d1d; font-family: -apple-system, sans-serif; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; padding: 32px; }
+  .cell { text-align: center; }
+  .cell svg { width: 100%; height: auto; }
+  .cell p { color: #bbb; font-size: 14px; margin: 10px 0 0; }
+</style>
+</head>
+<body>
+<div class="grid">
+
+  <div class="cell">
+    <svg viewBox="0 0 1024 1024">
+      <rect x="100" y="100" width="824" height="824" rx="186" fill="#fff"/>
+      <line x1="352" y1="512" x2="672" y2="512" stroke="#161616" stroke-width="72" stroke-linecap="round"/>
+    </svg>
+    <p>1 — just the line</p>
+  </div>
+
+  <div class="cell">
+    <svg viewBox="0 0 1024 1024">
+      <rect x="100" y="100" width="824" height="824" rx="186" fill="#fff"/>
+      <line x1="512" y1="330" x2="512" y2="694" stroke="#161616" stroke-width="64" stroke-linecap="round"/>
+    </svg>
+    <p>2 — the cursor</p>
+  </div>
+
+  <div class="cell">
+    <svg viewBox="0 0 1024 1024">
+      <rect x="100" y="100" width="824" height="824" rx="186" fill="#fff"/>
+      <line x1="360" y1="440" x2="664" y2="440" stroke="#161616" stroke-width="64" stroke-linecap="round"/>
+      <line x1="360" y1="584" x2="540" y2="584" stroke="#b9b9b3" stroke-width="64" stroke-linecap="round"/>
+    </svg>
+    <p>3 — two lines</p>
+  </div>
+
+  <div class="cell">
+    <svg viewBox="0 0 1024 1024">
+      <rect x="100" y="100" width="824" height="824" rx="186" fill="#fff"/>
+      <circle cx="512" cy="512" r="96" fill="#161616"/>
+    </svg>
+    <p>4 — just a dot</p>
+  </div>
+
+  <div class="cell">
+    <svg viewBox="0 0 1024 1024">
+      <rect x="100" y="100" width="824" height="824" rx="186" fill="#fff"/>
+      <line x1="380" y1="644" x2="644" y2="380" stroke="#161616" stroke-width="72" stroke-linecap="round"/>
+    </svg>
+    <p>5 — diagonal</p>
+  </div>
+
+  <div class="cell">
+    <svg viewBox="0 0 1024 1024">
+      <rect x="100" y="100" width="824" height="824" rx="186" fill="#fff"/>
+      <path d="M 620 320 q -40 190 -56 384" stroke="#161616" stroke-width="66" stroke-linecap="round" fill="none"/>
+    </svg>
+    <p>6 — pen stroke</p>
+  </div>
+
+  <div class="cell">
+    <svg viewBox="0 0 1024 1024">
+      <rect x="100" y="100" width="824" height="824" rx="186" fill="#fff"/>
+      <line x1="352" y1="452" x2="672" y2="452" stroke="#161616" stroke-width="68" stroke-linecap="round"/>
+      <circle cx="512" cy="620" r="40" fill="#b9b9b3"/>
+    </svg>
+    <p>7 — line over dot</p>
+  </div>
+
+  <div class="cell">
+    <svg viewBox="0 0 1024 1024">
+      <rect x="100" y="100" width="824" height="824" rx="186" fill="#fff"/>
+      <line x1="416" y1="352" x2="416" y2="672" stroke="#161616" stroke-width="60" stroke-linecap="round"/>
+      <line x1="560" y1="352" x2="560" y2="672" stroke="#b9b9b3" stroke-width="60" stroke-linecap="round"/>
+    </svg>
+    <p>8 — twin bars</p>
+  </div>
+
+</div>
+</body>
+</html>
