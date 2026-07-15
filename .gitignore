@@ -1,0 +1,6 @@
+node_modules/
+.idea/
+release/
+build/Plainnote.iconset/
+.DS_Store
+dist/
