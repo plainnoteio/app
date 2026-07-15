@@ -28,7 +28,7 @@
       "assets/icon-1024.png"
     ],
     "directories": { "output": "dist" },
-    "publish": { "provider": "github", "owner": "plainnoteio", "repo": "app" }
+    "publish": { "provider": "github", "owner": "plainnoteio", "repo": "app", "releaseType": "release" }
   },
   "scripts": {
     "start": "electron .",
