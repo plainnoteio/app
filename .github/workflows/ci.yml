@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  check:
+    name: Syntax and build check
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Syntax check
+        run: |
+          node -e "new Function(require('fs').readFileSync('app/main.js','utf8'))"
+          node -e "new Function(require('fs').readFileSync('app/preload.js','utf8'))"
+          node -e "new Function(require('fs').readFileSync('app/renderer.js','utf8'))"
+          echo "All files parse"
+
+      - name: Build app (no publish)
+        run: npx electron-builder --mac zip --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
