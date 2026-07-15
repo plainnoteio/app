@@ -9,6 +9,9 @@ const path = require('path');
 
 exports.default = async function adhocSign(context) {
   if (context.electronPlatformName !== 'darwin') return;
+  // A real Developer ID certificate is configured: electron-builder signs and
+  // notarizes properly, and ad-hoc re-signing here would destroy that signature.
+  if (process.env.CSC_LINK) return;
   const appPath = path.join(
     context.appOutDir,
     `${context.packager.appInfo.productFilename}.app`
