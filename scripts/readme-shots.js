@@ -58,7 +58,7 @@ fs.writeFileSync(path.join(demo, 'Projects', 'Plainnote roadmap.md'), `# Plainno
 
 fs.writeFileSync(cfgFile, JSON.stringify({ vaultPath: demo }, null, 2));
 
-require('../main.js');
+require('../app/main.js');
 const { app, BrowserWindow } = require('electron');
 
 const outDir = path.join(__dirname, '..', 'docs');

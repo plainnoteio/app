@@ -302,7 +302,7 @@ async function checkForUpdates() {
 app.whenReady().then(() => {
   if (process.platform === 'darwin' && app.dock) {
     try {
-      app.dock.setIcon(path.join(__dirname, 'assets', 'icon-1024.png'));
+      app.dock.setIcon(path.join(__dirname, '..', 'assets', 'icon-1024.png'));
     } catch (_) {}
   }
   vaultPath = loadConfig();

@@ -1,4 +1,4 @@
-require('../main.js');
+require('../app/main.js');
 const { app, BrowserWindow } = require('electron');
 
 setTimeout(() => {

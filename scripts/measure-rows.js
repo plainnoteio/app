@@ -1,4 +1,4 @@
-require('../main.js');
+require('../app/main.js');
 const { app, BrowserWindow } = require('electron');
 setTimeout(() => { app.exit(2); }, 15000);
 app.whenReady().then(async () => {
