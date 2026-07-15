@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' file: data:" />
+  <title>Plainnote</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <div class="sidebar-header">
+        <button id="btn-collapse" title="Hide sidebar (Cmd+B)">
+          <svg width="15" height="15" viewBox="0 0 15 15"><rect x="1.5" y="2.5" width="12" height="10" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2"/><line x1="5.5" y1="2.5" x2="5.5" y2="12.5" stroke="currentColor" stroke-width="1.2"/></svg>
+        </button>
+        <span class="app-name">Plainnote</span>
+        <div class="sidebar-actions">
+          <button id="btn-new-note" title="New note (Cmd+N)">
+            <svg width="15" height="15" viewBox="0 0 15 15"><path d="M7.5 2v11M2 7.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
+          </button>
+          <button id="btn-new-folder" title="New folder">
+            <svg width="15" height="15" viewBox="0 0 15 15"><path d="M1.5 3.5h4l1.5 2h6.5v6a1 1 0 0 1-1 1h-10a1 1 0 0 1-1-1v-8z" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="search-wrap">
+        <input id="search" type="text" placeholder="Search notes…" spellcheck="false" />
+      </div>
+      <div id="search-results" class="scroll" hidden></div>
+      <div id="tree" class="scroll"></div>
+      <div id="tags-section">
+        <div class="tags-resize" title="Drag to resize"></div>
+        <div class="section-label" id="tags-label">Tags</div>
+        <div id="tags"></div>
+      </div>
+      <div class="sidebar-footer">
+        <button id="btn-vault" title="Choose a different vault folder">
+          <svg width="13" height="13" viewBox="0 0 15 15"><path d="M1.5 3.5h4l1.5 2h6.5v6a1 1 0 0 1-1 1h-10a1 1 0 0 1-1-1v-8z" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linejoin="round"/></svg>
+          <span id="vault-name">vault</span>
+        </button>
+        <button id="btn-reveal" title="Show vault folder in Finder">
+          <svg width="14" height="14" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button id="btn-theme" title="Switch theme"></button>
+        <button id="btn-settings" title="Settings"></button>
+      </div>
+    </aside>
+    <div id="sidebar-resize" title="Drag to resize"></div>
+
+    <main id="main">
+      <button id="btn-expand" title="Show sidebar (Cmd+B)">
+        <svg width="15" height="15" viewBox="0 0 15 15"><rect x="1.5" y="2.5" width="12" height="10" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2"/><line x1="5.5" y1="2.5" x2="5.5" y2="12.5" stroke="currentColor" stroke-width="1.2"/></svg>
+      </button>
+      <div id="panes-wrap"></div>
+    </main>
+  </div>
+
+  <div id="modal-overlay" hidden>
+    <div id="modal">
+      <div id="modal-label"></div>
+      <input id="modal-input" spellcheck="false" autocomplete="off" />
+      <div id="modal-buttons">
+        <button id="modal-cancel">Cancel</button>
+        <button id="modal-ok">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
