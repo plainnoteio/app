@@ -8,7 +8,7 @@
 
 <p align="center">
 A clean, local-first note-taking app for macOS. Your notes are plain <code>.md</code> files
-in a folder you own — no database, no lock-in, no accounts.
+in a folder you own - no database, no lock-in, no accounts.
 </p>
 
 <p align="center">
@@ -24,24 +24,15 @@ in a folder you own — no database, no lock-in, no accounts.
 
 ## Features
 
-- **Live editing** — the line you're on shows raw markdown, everything else stays rendered. Press Enter and it formats. (Cmd+E toggles Edit/Read)
-- **Wikilinks** — type `[[` and autocomplete a link to any note; a backlinks panel shows every note that points back
-- **Tags** — `#tag` anywhere becomes a clickable pill; browse them in the sidebar
-- **Split view** — two notes side by side with a draggable divider; drop a note onto the page to open the split
-
-<p align="center">
-  <img src="docs/split.png" width="800" alt="Two notes open side by side in split view">
-</p>
-
-- **Search** — vault-wide search (Cmd+Shift+F) and in-note find with highlights (Cmd+F)
-- **Organize** — folders, drag-and-drop, pinned notes, right-click rename, trash-safe delete
-- **Export** — any note to PDF or a standalone HTML page
-- **Own your files** — notes live in `~/Documents/Plainnote`; edit them with any other tool and the app picks up the changes live
-- **The details** — dark mode, optional line numbers, per-note history (Cmd+[ / ]), note-level undo, import `.md`/`.txt` by drop, stats
-
-<p align="center">
-  <img src="docs/dark.png" width="800" alt="Plainnote in dark mode">
-</p>
+- **Live editing** - the line you're on is raw markdown, everything else stays rendered; Cmd+E toggles Edit/Read
+- **Wikilinks** - type `[[` and autocomplete a link to any note; backlinks show every note that points back
+- **Tags** - `#tag` anywhere becomes a clickable pill, browsable from the sidebar
+- **Split view** - two notes side by side, each pane with its own back/forward history (Cmd+[ / Cmd+])
+- **Search** - across the whole vault (Cmd+Shift+F) or within a note, with highlights (Cmd+F)
+- **Organize** - folders, drag and drop, pinned notes, trash-safe delete
+- **Export** - any note to PDF or a standalone HTML page
+- **Your files** - plain `.md` in `~/Documents/Plainnote`; edit them with any other tool and the app picks up the changes live
+- **The details** - dark mode, optional line numbers, note-level undo, import by drop, stats
 
 ## Install & develop
 
@@ -55,15 +46,15 @@ npm run package      # build Plainnote.app and install it to ~/Applications
 
 | File | Role |
 |------|------|
-| `main.js` | Electron main process — file I/O, vault watcher, dialogs, PDF export |
+| `main.js` | Electron main process - file I/O, vault watcher, dialogs, PDF export |
 | `preload.js` | Context-isolated bridge exposing a minimal `window.api` |
-| `renderer.js` | The entire UI — panes, live editor, sidebar, search, menus |
+| `renderer.js` | The entire UI - panes, live editor, sidebar, search, menus |
 | `styles.css` | Hand-written CSS, themed via custom properties |
 | `assets/` | App icon sources and rendered PNGs |
 | `scripts/` | Dev-only utilities (icon rendering, screenshots, layout tests) |
 
 Notes are read into memory on launch and re-read when the vault changes on disk.
-Backlinks, tags, and search are computed in memory — no index files, no database.
+Backlinks, tags, and search are computed in memory - no index files, no database.
 
 ## License
 
