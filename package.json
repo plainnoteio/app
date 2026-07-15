@@ -3,20 +3,30 @@
   "productName": "Plainnote",
   "version": "1.0.1",
   "description": "Plain markdown notes, no clutter.",
-  "author": "Michele",
+  "author": "Plainnote",
   "license": "AGPL-3.0-only",
   "private": true,
   "main": "app/main.js",
   "repository": "https://github.com/plainnoteio/app",
   "build": {
-    "appId": "com.michele.plainnote",
+    "appId": "io.plainnote.app",
     "productName": "Plainnote",
     "mac": {
       "category": "public.app-category.productivity",
       "icon": "build/icon.icns",
       "target": [
-        { "target": "dmg", "arch": ["arm64"] },
-        { "target": "zip", "arch": ["arm64"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64"
+          ]
+        }
       ]
     },
     "files": [
@@ -27,13 +37,21 @@
       "app/styles.css",
       "assets/icon-1024.png"
     ],
-    "directories": { "output": "dist" },
-    "publish": { "provider": "github", "owner": "plainnoteio", "repo": "app", "releaseType": "release" }
+    "directories": {
+      "output": "dist"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "plainnoteio",
+      "repo": "app",
+      "releaseType": "release"
+    },
+    "afterPack": "scripts/adhoc-sign.js"
   },
   "scripts": {
     "start": "electron .",
     "dist": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac",
-    "package": "electron-packager . Plainnote --platform=darwin --arch=arm64 --icon=build/icon.icns --app-bundle-id=com.michele.plainnote --out=release --overwrite --ignore=\"^/scripts\" --ignore=\"^/build\" --ignore=\"^/release\" && cp build/icon.icns release/Plainnote-darwin-arm64/Plainnote.app/Contents/Resources/electron.icns && codesign --force --deep -s - release/Plainnote-darwin-arm64/Plainnote.app && rm -rf ~/Applications/Plainnote.app && cp -R release/Plainnote-darwin-arm64/Plainnote.app ~/Applications/"
+    "package": "electron-packager . Plainnote --platform=darwin --arch=arm64 --icon=build/icon.icns --app-bundle-id=io.plainnote.app --out=release --overwrite --ignore=\"^/scripts\" --ignore=\"^/build\" --ignore=\"^/release\" && cp build/icon.icns release/Plainnote-darwin-arm64/Plainnote.app/Contents/Resources/electron.icns && codesign --force --deep -s - release/Plainnote-darwin-arm64/Plainnote.app && rm -rf ~/Applications/Plainnote.app && cp -R release/Plainnote-darwin-arm64/Plainnote.app ~/Applications/"
   },
   "dependencies": {
     "marked": "^18.0.6"
