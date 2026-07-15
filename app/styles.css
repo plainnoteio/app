@@ -678,6 +678,40 @@ body.hide-tags #tags-section { display: none !important; }
 .backlink-pill:hover { background: var(--sidebar-active); color: var(--text); }
 .backlinks-empty { font-size: 0.8rem; color: var(--muted); }
 
+/* ---------- Update toast ---------- */
+
+#update-toast {
+  position: fixed;
+  left: 12px;
+  bottom: 54px;
+  z-index: 40;
+  width: 236px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.2);
+  padding: 16px 18px;
+  animation: toast-in 0.22s ease;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+#update-toast .toast-title { font-size: 0.95rem; font-weight: 700; }
+#update-toast .toast-body { font-size: 0.88rem; color: var(--text-soft); margin: 5px 0 14px; }
+#update-toast .toast-actions { display: flex; justify-content: flex-end; gap: 8px; }
+#update-toast .toast-actions button {
+  font-size: 0.85rem;
+  padding: 7px 16px;
+  border-radius: 8px;
+}
+#update-toast .toast-later { color: var(--muted); }
+#update-toast .toast-later:hover { background: var(--code-bg); color: var(--text); }
+#update-toast .toast-download { background: var(--text); color: var(--bg); }
+#update-toast .toast-download:hover { background: #333; }
+body.theme-dark #update-toast { box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5); }
+body.theme-dark #update-toast .toast-download:hover { background: #c9c9c4; }
+
 /* ---------- Stats ---------- */
 
 #stats-overlay {

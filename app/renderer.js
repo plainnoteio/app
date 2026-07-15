@@ -63,6 +63,41 @@ function scheduleSave(path) {
   }, 400));
 }
 
+/* ---------- update toast ---------- */
+
+window.api.onUpdateAvailable((info) => {
+  if (localStorage.getItem('plainnote.skipVersion') === info.version) return;
+  showUpdateToast(info);
+});
+
+function showUpdateToast(info) {
+  let toast = document.getElementById('update-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'update-toast';
+    document.body.appendChild(toast);
+  }
+  const sb = document.getElementById('sidebar');
+  toast.style.width = (sb && !document.body.classList.contains('sidebar-hidden'))
+    ? (sb.offsetWidth - 24) + 'px'
+    : '300px';
+  toast.innerHTML = `
+    <div class="toast-title">Update available</div>
+    <div class="toast-body">Plainnote ${escapeHtml(info.version)} is ready to download.</div>
+    <div class="toast-actions">
+      <button class="toast-later">Later</button>
+      <button class="toast-download">Download</button>
+    </div>`;
+  toast.querySelector('.toast-download').addEventListener('click', () => {
+    window.api.openExternal(info.url);
+    toast.remove();
+  });
+  toast.querySelector('.toast-later').addEventListener('click', () => {
+    localStorage.setItem('plainnote.skipVersion', info.version);
+    toast.remove();
+  });
+}
+
 window.api.onVaultChanged(() => {
   if (Date.now() - lastSaveAt < 1500) return;
   refreshAll();

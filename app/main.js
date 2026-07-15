@@ -287,15 +287,12 @@ async function checkForUpdates() {
       || (next[0] === current[0] && next[1] > current[1])
       || (next[0] === current[0] && next[1] === current[1] && next[2] > current[2]);
     if (!newer) return;
-    const { response } = await dialog.showMessageBox(win, {
-      type: 'info',
-      message: `Plainnote ${latest} is available`,
-      detail: `You have ${app.getVersion()}. Download the new version and drop it into Applications to update.`,
-      buttons: ['Download', 'Later'],
-      defaultId: 0,
-      cancelId: 1,
-    });
-    if (response === 0) shell.openExternal(release.html_url || `https://github.com/${UPDATE_REPO}/releases/latest`);
+    if (win && !win.isDestroyed()) {
+      win.webContents.send('update:available', {
+        version: latest,
+        url: release.html_url || `https://github.com/${UPDATE_REPO}/releases/latest`,
+      });
+    }
   } catch (_) {}
 }
 
@@ -311,6 +308,7 @@ app.whenReady().then(() => {
   createWindow();
   watchVault();
   setTimeout(checkForUpdates, 3000);
+  setInterval(checkForUpdates, 4 * 60 * 60 * 1000);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

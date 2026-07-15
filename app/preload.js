@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('api', {
   onVaultChanged: (cb) => ipcRenderer.on('vault:changed', () => cb()),
   exportNote: (name, html, format) => ipcRenderer.invoke('note:export', name, html, format),
   openExternal: (url) => ipcRenderer.invoke('open:external', url),
+  onUpdateAvailable: (cb) => ipcRenderer.on('update:available', (_e, info) => cb(info)),
 });
 
 contextBridge.exposeInMainWorld('markdown', {
