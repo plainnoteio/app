@@ -25,6 +25,8 @@ contextBridge.exposeInMainWorld('api', {
   onUpdateAvailable: (cb) => ipcRenderer.on('update:available', (_e, info) => cb(info)),
   onUpdateError: (cb) => ipcRenderer.on('update:error', () => cb()),
   installUpdate: () => ipcRenderer.send('update:install'),
+  checkForUpdates: () => ipcRenderer.invoke('update:check'),
+  getVersion: () => ipcRenderer.invoke('app:version'),
 });
 
 contextBridge.exposeInMainWorld('markdown', {

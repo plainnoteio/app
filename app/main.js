@@ -270,7 +270,11 @@ function createWindow() {
 }
 
 function setupAutoUpdates() {
-  if (!app.isPackaged) return;
+  ipcMain.handle('app:version', () => app.getVersion());
+  if (!app.isPackaged) {
+    ipcMain.handle('update:check', () => 'latest');
+    return;
+  }
   const { autoUpdater } = require('electron-updater');
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = false;
@@ -285,6 +289,16 @@ function setupAutoUpdates() {
   });
   autoUpdater.on('update-downloaded', () => autoUpdater.quitAndInstall());
   ipcMain.on('update:install', () => autoUpdater.downloadUpdate().catch(() => {}));
+  ipcMain.handle('update:check', async () => {
+    try {
+      const res = await autoUpdater.checkForUpdates();
+      const available = res && (res.isUpdateAvailable
+        ?? (res.updateInfo && res.updateInfo.version !== app.getVersion()));
+      return available ? 'update' : 'latest';
+    } catch (_) {
+      return 'error';
+    }
+  });
   const check = () => autoUpdater.checkForUpdates().catch(() => {});
   setTimeout(check, 3000);
   setInterval(check, 24 * 60 * 60 * 1000);

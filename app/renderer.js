@@ -107,6 +107,41 @@ function showUpdateToast(info) {
   });
 }
 
+async function checkForUpdatesManually() {
+  localStorage.removeItem('plainnote.skipVersion');
+  const [result, version] = await Promise.all([
+    window.api.checkForUpdates(),
+    window.api.getVersion(),
+  ]);
+  if (result === 'update') return; // the regular update toast takes it from here
+  showInfoToast(
+    result === 'error' ? 'Update check failed' : 'Up to date',
+    result === 'error'
+      ? "Couldn't reach the update server. Try again later."
+      : `Plainnote ${version} is the latest version.`
+  );
+}
+
+function showInfoToast(title, body) {
+  let toast = document.getElementById('update-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'update-toast';
+    document.body.appendChild(toast);
+  }
+  const sb = document.getElementById('sidebar');
+  toast.style.width = (sb && !document.body.classList.contains('sidebar-hidden'))
+    ? (sb.offsetWidth - 24) + 'px'
+    : '300px';
+  toast.innerHTML = `
+    <div class="toast-title">${escapeHtml(title)}</div>
+    <div class="toast-body">${escapeHtml(body)}</div>
+    <div class="toast-actions">
+      <button class="toast-update">OK</button>
+    </div>`;
+  toast.querySelector('.toast-update').addEventListener('click', () => toast.remove());
+}
+
 window.api.onVaultChanged(() => {
   if (Date.now() - lastSaveAt < 1500) return;
   refreshAll();
@@ -1673,6 +1708,7 @@ $('#btn-settings').addEventListener('click', (e) => {
     { label: 'Show tags', checked: !tagsHidden, action: toggleTagsHidden },
     { label: 'Show backlinks', checked: !backlinksHidden, action: toggleBacklinksHidden },
     { label: 'Stats…', action: showStats },
+    { label: 'Check for updates…', action: checkForUpdatesManually },
     { label: 'Reset to defaults', danger: true, action: resetDefaults },
   ], r);
 });
