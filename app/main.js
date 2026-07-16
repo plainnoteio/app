@@ -287,7 +287,7 @@ function setupAutoUpdates() {
   ipcMain.on('update:install', () => autoUpdater.downloadUpdate().catch(() => {}));
   const check = () => autoUpdater.checkForUpdates().catch(() => {});
   setTimeout(check, 3000);
-  setInterval(check, 4 * 60 * 60 * 1000);
+  setInterval(check, 24 * 60 * 60 * 1000);
 }
 
 app.whenReady().then(() => {
