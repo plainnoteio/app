@@ -1992,6 +1992,17 @@ treeEl.addEventListener('dragleave', (e) => {
   if (!treeEl.contains(e.relatedTarget)) treeEl.classList.remove('drop-root');
 });
 
+// Native edit menu (cut/copy/paste) for text fields and selected text.
+// Runs last: anything with its own context menu has already called preventDefault.
+document.addEventListener('contextmenu', (e) => {
+  if (e.defaultPrevented) return;
+  const editable = e.target.closest('input, textarea, [contenteditable="true"]');
+  const hasSelection = window.getSelection().toString().length > 0;
+  if (!editable && !hasSelection) return;
+  e.preventDefault();
+  window.api.showEditMenu(!!editable);
+});
+
 // A drag can end anywhere (Esc, drop outside a target) — always clear leftover highlights
 document.addEventListener('dragend', () => {
   treeEl.classList.remove('drop-root');

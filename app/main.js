@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
@@ -165,6 +165,13 @@ function registerIpc() {
 
   ipcMain.on('app:reset-zoom', () => {
     if (win && !win.isDestroyed()) win.webContents.setZoomFactor(DEFAULT_ZOOM);
+  });
+
+  ipcMain.on('menu:edit', (_e, isEditable) => {
+    const template = isEditable
+      ? [{ role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { type: 'separator' }, { role: 'selectAll' }]
+      : [{ role: 'copy' }];
+    Menu.buildFromTemplate(template).popup({ window: win });
   });
 
   ipcMain.handle('vault:tree', () => listTree(vaultPath));
