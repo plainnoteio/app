@@ -1654,11 +1654,24 @@ function askName(label, def = '', okText = 'Create') {
 
 $('#btn-new-note').addEventListener('click', () => createNewNote());
 
-$('#btn-new-folder').addEventListener('click', async () => {
+async function createNewFolder() {
   const name = await askName('New folder name');
   if (!name) return;
   await window.api.createFolder(selectedFolder, name);
   await refreshAll();
+}
+
+$('#btn-new-folder').addEventListener('click', createNewFolder);
+
+// Right-click on empty sidebar space: create at the vault root
+treeEl.addEventListener('contextmenu', (e) => {
+  if (e.target.closest('.tree-row')) return;
+  e.preventDefault();
+  selectedFolder = '';
+  showMenu(e.clientX, e.clientY, [
+    { label: 'New note', action: () => createNewNote() },
+    { label: 'New folder…', action: createNewFolder },
+  ]);
 });
 
 $('#btn-vault').addEventListener('click', async () => {
