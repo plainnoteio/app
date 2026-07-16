@@ -1745,7 +1745,7 @@ $('#btn-settings').addEventListener('click', (e) => {
   ], r);
 });
 
-function resetDefaults() {
+async function resetDefaults() {
   if (!confirm('Reset all settings and layout to their defaults?')) return;
   for (const key of Object.keys(localStorage)) {
     if (key.startsWith('plainnote.')) localStorage.removeItem(key);
@@ -1759,6 +1759,8 @@ function resetDefaults() {
   sidebarW = 260;
   sidebarHidden = false;
   splitRatio = 0.5;
+  pinned = [];
+  window.api.resetZoom();
   applyInlineTitle();
   applyLineNumbers();
   applyHiddenSections();
@@ -1770,6 +1772,7 @@ function resetDefaults() {
   for (const p of panes) {
     if (p.mode === 'live') renderPane(p);
   }
+  await refreshAll();
 }
 
 /* ---------- stats ---------- */

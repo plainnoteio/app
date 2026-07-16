@@ -4,6 +4,8 @@ const path = require('path');
 
 const configFile = () => path.join(app.getPath('userData'), 'config.json');
 
+const DEFAULT_ZOOM = 1.2;
+
 let vaultPath = null;
 let win = null;
 
@@ -161,6 +163,10 @@ function registerIpc() {
     if (typeof url === 'string' && /^https?:\/\//i.test(url)) shell.openExternal(url);
   });
 
+  ipcMain.on('app:reset-zoom', () => {
+    if (win && !win.isDestroyed()) win.webContents.setZoomFactor(DEFAULT_ZOOM);
+  });
+
   ipcMain.handle('vault:tree', () => listTree(vaultPath));
   ipcMain.handle('notes:all', () => readAll(vaultPath));
 
@@ -271,7 +277,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
-      zoomFactor: 1.2,
+      zoomFactor: DEFAULT_ZOOM,
     },
   });
   win.loadFile(path.join(__dirname, 'index.html'));

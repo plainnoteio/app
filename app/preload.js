@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld('api', {
   onUpdateError: (cb) => ipcRenderer.on('update:error', () => cb()),
   installUpdate: () => ipcRenderer.send('update:install'),
   checkForUpdates: () => ipcRenderer.invoke('update:check'),
+  resetZoom: () => ipcRenderer.send('app:reset-zoom'),
   getVersion: () => ipcRenderer.invoke('app:version'),
 });
 
