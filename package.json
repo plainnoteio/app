@@ -55,15 +55,13 @@
   },
   "scripts": {
     "start": "electron .",
-    "dist": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac",
-    "package": "electron-packager . Plainnote --platform=darwin --arch=arm64 --icon=build/icon.icns --app-bundle-id=io.plainnote.app --out=release --overwrite --ignore=\"^/scripts\" --ignore=\"^/build\" --ignore=\"^/release\" && cp build/icon.icns release/Plainnote-darwin-arm64/Plainnote.app/Contents/Resources/electron.icns && codesign --force --deep -s - release/Plainnote-darwin-arm64/Plainnote.app && rm -rf ~/Applications/Plainnote.app && cp -R release/Plainnote-darwin-arm64/Plainnote.app ~/Applications/"
+    "dist": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac"
   },
   "dependencies": {
     "electron-updater": "^6.8.9",
     "marked": "^18.0.6"
   },
   "devDependencies": {
-    "@electron/packager": "^20.0.2",
     "electron": "^43.1.1",
     "electron-builder": "^26.15.3"
   },

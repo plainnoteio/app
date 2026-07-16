@@ -39,7 +39,7 @@ in a folder you own - no database, no lock-in, no accounts.
 ```bash
 npm install          # first time; if Electron's binary is missing: node node_modules/electron/install.js
 npm start            # run from source
-npm run package      # build Plainnote.app and install it to ~/Applications
+npm run dist         # build a signed-style DMG/ZIP into dist/ for local testing
 ```
 
 ## Architecture
