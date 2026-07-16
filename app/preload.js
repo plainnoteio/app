@@ -23,6 +23,8 @@ contextBridge.exposeInMainWorld('api', {
   exportNote: (name, html, format) => ipcRenderer.invoke('note:export', name, html, format),
   openExternal: (url) => ipcRenderer.invoke('open:external', url),
   onUpdateAvailable: (cb) => ipcRenderer.on('update:available', (_e, info) => cb(info)),
+  onUpdateError: (cb) => ipcRenderer.on('update:error', () => cb()),
+  installUpdate: () => ipcRenderer.send('update:install'),
 });
 
 contextBridge.exposeInMainWorld('markdown', {

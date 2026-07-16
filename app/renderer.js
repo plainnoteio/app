@@ -70,6 +70,14 @@ window.api.onUpdateAvailable((info) => {
   showUpdateToast(info);
 });
 
+window.api.onUpdateError(() => {
+  const btn = document.querySelector('#update-toast .toast-update');
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = 'Update';
+  }
+});
+
 function showUpdateToast(info) {
   let toast = document.getElementById('update-toast');
   if (!toast) {
@@ -83,14 +91,15 @@ function showUpdateToast(info) {
     : '300px';
   toast.innerHTML = `
     <div class="toast-title">Update available</div>
-    <div class="toast-body">Plainnote ${escapeHtml(info.version)} is ready to download.</div>
+    <div class="toast-body">Plainnote ${escapeHtml(info.version)} is ready. The app restarts to update.</div>
     <div class="toast-actions">
       <button class="toast-later">Later</button>
-      <button class="toast-download">Download</button>
+      <button class="toast-update">Update</button>
     </div>`;
-  toast.querySelector('.toast-download').addEventListener('click', () => {
-    window.api.openExternal(info.url);
-    toast.remove();
+  toast.querySelector('.toast-update').addEventListener('click', (e) => {
+    e.target.disabled = true;
+    e.target.textContent = 'Updating…';
+    window.api.installUpdate();
   });
   toast.querySelector('.toast-later').addEventListener('click', () => {
     localStorage.setItem('plainnote.skipVersion', info.version);

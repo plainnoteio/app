@@ -707,10 +707,11 @@ body.hide-tags #tags-section { display: none !important; }
 }
 #update-toast .toast-later { color: var(--muted); }
 #update-toast .toast-later:hover { background: var(--code-bg); color: var(--text); }
-#update-toast .toast-download { background: var(--text); color: var(--bg); }
-#update-toast .toast-download:hover { background: #333; }
+#update-toast .toast-update { background: var(--text); color: var(--bg); }
+#update-toast .toast-update:hover { background: #333; }
+#update-toast .toast-update:disabled { opacity: 0.6; cursor: default; }
 body.theme-dark #update-toast { box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5); }
-body.theme-dark #update-toast .toast-download:hover { background: #c9c9c4; }
+body.theme-dark #update-toast .toast-update:hover { background: #c9c9c4; }
 
 /* ---------- Stats ---------- */
 

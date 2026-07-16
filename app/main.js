@@ -269,31 +269,25 @@ function createWindow() {
   win.webContents.on('will-navigate', (e) => e.preventDefault());
 }
 
-const UPDATE_REPO = 'plainnoteio/app';
-
-async function checkForUpdates() {
+function setupAutoUpdates() {
   if (!app.isPackaged) return;
-  try {
-    const res = await fetch(`https://api.github.com/repos/${UPDATE_REPO}/releases/latest`, {
-      headers: { Accept: 'application/vnd.github+json' },
-    });
-    if (!res.ok) return;
-    const release = await res.json();
-    const latest = String(release.tag_name || '').replace(/^v/, '');
-    if (!latest || latest === app.getVersion()) return;
-    const current = app.getVersion().split('.').map(Number);
-    const next = latest.split('.').map(Number);
-    const newer = next[0] > current[0]
-      || (next[0] === current[0] && next[1] > current[1])
-      || (next[0] === current[0] && next[1] === current[1] && next[2] > current[2]);
-    if (!newer) return;
+  const { autoUpdater } = require('electron-updater');
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = false;
+  autoUpdater.on('error', () => {
+    // offline, rate-limited, etc. — let the toast recover, otherwise stay silent
+    if (win && !win.isDestroyed()) win.webContents.send('update:error');
+  });
+  autoUpdater.on('update-available', (info) => {
     if (win && !win.isDestroyed()) {
-      win.webContents.send('update:available', {
-        version: latest,
-        url: release.html_url || `https://github.com/${UPDATE_REPO}/releases/latest`,
-      });
+      win.webContents.send('update:available', { version: info.version });
     }
-  } catch (_) {}
+  });
+  autoUpdater.on('update-downloaded', () => autoUpdater.quitAndInstall());
+  ipcMain.on('update:install', () => autoUpdater.downloadUpdate().catch(() => {}));
+  const check = () => autoUpdater.checkForUpdates().catch(() => {});
+  setTimeout(check, 3000);
+  setInterval(check, 4 * 60 * 60 * 1000);
 }
 
 app.whenReady().then(() => {
@@ -307,8 +301,7 @@ app.whenReady().then(() => {
   registerIpc();
   createWindow();
   watchVault();
-  setTimeout(checkForUpdates, 3000);
-  setInterval(checkForUpdates, 4 * 60 * 60 * 1000);
+  setupAutoUpdates();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
