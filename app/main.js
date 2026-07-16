@@ -206,6 +206,12 @@ function registerIpc() {
     return true;
   });
 
+  ipcMain.handle('folder:delete', async (_e, rel) => {
+    if (!rel) throw new Error('Refusing to trash the vault root');
+    await shell.trashItem(safeJoin(rel));
+    return true;
+  });
+
   ipcMain.handle('note:export', async (_e, name, html, format) => {
     const clean = (name || 'note').replace(/[\\/:]/g, '-');
     const res = await dialog.showSaveDialog(win, {

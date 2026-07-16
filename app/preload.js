@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('api', {
   deleteNote: (rel) => ipcRenderer.invoke('note:delete', rel),
   createFolder: (parentRel, name) => ipcRenderer.invoke('folder:create', parentRel, name),
   renameFolder: (rel, newName) => ipcRenderer.invoke('folder:rename', rel, newName),
+  deleteFolder: (rel) => ipcRenderer.invoke('folder:delete', rel),
   moveNote: (rel, targetFolderRel) => ipcRenderer.invoke('note:move', rel, targetFolderRel),
   importNote: (absPath) => ipcRenderer.invoke('note:import', absPath),
   getPathForFile: (file) => webUtils.getPathForFile(file),

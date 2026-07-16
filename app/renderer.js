@@ -1077,6 +1077,26 @@ async function renameFolderAt(path, newName) {
   }
 }
 
+async function deleteFolderAt(item) {
+  if (!confirm(`Move "${item.name}" and everything inside it to the trash?`)) return;
+  try {
+    await window.api.deleteFolder(item.path);
+    const inside = (p) => p === item.path || p.startsWith(item.path + '/');
+    pinned = pinned.filter((p) => !inside(p));
+    savePinned();
+    for (const p of panes) {
+      if (p.path && inside(p.path)) p.path = null;
+    }
+    for (const c of [...collapsed]) {
+      if (inside(c)) collapsed.delete(c);
+    }
+    if (selectedFolder && inside(selectedFolder)) selectedFolder = '';
+    await refreshAll();
+  } catch (err) {
+    alert(err.message.replace(/^.*Error: /, ''));
+  }
+}
+
 /* ---------- hide tags / hide backlinks ---------- */
 
 let tagsHidden = localStorage.getItem('plainnote.hideTags') === '1';
@@ -1360,18 +1380,21 @@ function buildTreeLevel(items) {
     if (item.type === 'folder') {
       const row = document.createElement('div');
       row.className = 'tree-row folder-row' + (collapsed.has(item.path) ? ' collapsed' : '');
-      row.innerHTML = `<span class="chevron"><svg width="14" height="14" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="row-name">${escapeHtml(item.name)}</span>`;
+      row.innerHTML = `<span class="chevron"><svg width="14" height="14" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="row-name">${escapeHtml(item.name)}</span>` +
+        `<button class="row-delete" title="Move to trash"><svg width="14" height="14" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
       makeFolderDropTarget(row, item.path);
       const childWrap = document.createElement('div');
       childWrap.className = 'tree-children' + (collapsed.has(item.path) ? ' hidden' : '');
       childWrap.appendChild(buildTreeLevel(item.children));
-      row.addEventListener('click', () => {
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('.row-delete')) return;
         selectedFolder = item.path;
         if (collapsed.has(item.path)) collapsed.delete(item.path);
         else collapsed.add(item.path);
         row.classList.toggle('collapsed');
         childWrap.classList.toggle('hidden');
       });
+      row.querySelector('.row-delete').addEventListener('click', () => deleteFolderAt(item));
       row.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         showMenu(e.clientX, e.clientY, [
@@ -1384,6 +1407,7 @@ function buildTreeLevel(items) {
             collapsed.delete(item.path);
             createNewNote();
           } },
+          { label: 'Move to trash', danger: true, action: () => deleteFolderAt(item) },
         ]);
       });
       frag.appendChild(row);
