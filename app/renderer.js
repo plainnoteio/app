@@ -1049,6 +1049,15 @@ async function renameNoteAt(path, newName) {
       p.history = p.history.map((h) => (h === path ? newPath : h));
     }
     remapPinned(path, newPath);
+    const orderArr = noteOrder[dirnameRel(path)];
+    if (orderArr) {
+      const oldName = path.split('/').pop().replace(/\.md$/i, '');
+      const i = orderArr.indexOf(oldName);
+      if (i !== -1) {
+        orderArr[i] = newName;
+        saveNoteOrder();
+      }
+    }
     await refreshAll();
   } catch (err) {
     alert(err.message.replace(/^.*Error: /, ''));
@@ -1066,6 +1075,13 @@ async function renameFolderAt(path, newName) {
     if (selectedFolder === path || selectedFolder.startsWith(path + '/')) {
       selectedFolder = newRel + selectedFolder.slice(path.length);
     }
+    for (const k of Object.keys(noteOrder)) {
+      if (k === path || k.startsWith(path + '/')) {
+        noteOrder[newRel + k.slice(path.length)] = noteOrder[k];
+        delete noteOrder[k];
+      }
+    }
+    saveNoteOrder();
     await refreshAll();
   } catch (err) {
     alert(err.message.replace(/^.*Error: /, ''));
@@ -1085,6 +1101,10 @@ async function deleteFolderAt(item) {
     for (const c of [...collapsed]) {
       if (inside(c)) collapsed.delete(c);
     }
+    for (const k of Object.keys(noteOrder)) {
+      if (inside(k)) delete noteOrder[k];
+    }
+    saveNoteOrder();
     if (selectedFolder && inside(selectedFolder)) selectedFolder = '';
     await refreshAll();
   } catch (err) {
@@ -1299,6 +1319,53 @@ function remapPinned(oldPath, newPath) {
   savePinned();
 }
 
+/* ---------- manual note order ---------- */
+
+let noteOrder = {};
+try {
+  noteOrder = JSON.parse(localStorage.getItem('plainnote.order') || '{}');
+} catch (_) {
+  noteOrder = {};
+}
+
+function saveNoteOrder() {
+  localStorage.setItem('plainnote.order', JSON.stringify(noteOrder));
+}
+
+function dirnameRel(p) {
+  const i = p.lastIndexOf('/');
+  return i === -1 ? '' : p.slice(0, i);
+}
+
+function applyNoteOrder(items, parentPath) {
+  const order = noteOrder[parentPath];
+  if (!order || !order.length) return items;
+  return [...items].sort((a, b) => {
+    if (a.type !== b.type) return a.type === 'folder' ? -1 : 1;
+    if (a.type !== 'note') return 0;
+    const ia = order.indexOf(a.name);
+    const ib = order.indexOf(b.name);
+    if (ia === -1 && ib === -1) return 0;
+    return (ia === -1 ? Infinity : ia) - (ib === -1 ? Infinity : ib);
+  });
+}
+
+async function reorderNote(srcPath, target, below, rowEl) {
+  const targetFolder = dirnameRel(target.path);
+  const srcFolder = dirnameRel(srcPath);
+  const srcName = srcPath.split('/').pop().replace(/\.md$/i, '');
+  const levelNames = [...rowEl.parentElement.children]
+    .filter((el) => el.classList && el.classList.contains('note-row') && !el.classList.contains('pinned-row'))
+    .map((el) => el.dataset.path.split('/').pop().replace(/\.md$/i, ''));
+  const list = levelNames.filter((n) => n !== srcName);
+  const ti = list.indexOf(target.name);
+  list.splice(below ? ti + 1 : ti, 0, srcName);
+  noteOrder[targetFolder] = list;
+  saveNoteOrder();
+  if (srcFolder !== targetFolder) await moveNoteTo(srcPath, targetFolder);
+  else await refreshAll();
+}
+
 /* ---------- note context menu + export ---------- */
 
 async function exportNote(item, format) {
@@ -1354,7 +1421,7 @@ function renderTree() {
     treeEl.appendChild(label);
     for (const note of pinnedNotes) {
       const row = document.createElement('div');
-      row.className = 'tree-row note-row';
+      row.className = 'tree-row note-row pinned-row';
       row.dataset.path = note.path;
       row.innerHTML = `<span class="chevron"></span><span class="row-name">${escapeHtml(note.name)}</span>`;
       row.addEventListener('click', () => openNote(note.path));
@@ -1369,9 +1436,9 @@ function renderTree() {
   updateTreeHighlight();
 }
 
-function buildTreeLevel(items) {
+function buildTreeLevel(items, parentPath = '') {
   const frag = document.createDocumentFragment();
-  for (const item of items) {
+  for (const item of applyNoteOrder(items, parentPath)) {
     if (item.type === 'folder') {
       const row = document.createElement('div');
       row.className = 'tree-row folder-row' + (collapsed.has(item.path) ? ' collapsed' : '');
@@ -1380,7 +1447,7 @@ function buildTreeLevel(items) {
       makeFolderDropTarget(row, item.path);
       const childWrap = document.createElement('div');
       childWrap.className = 'tree-children' + (collapsed.has(item.path) ? ' hidden' : '');
-      childWrap.appendChild(buildTreeLevel(item.children));
+      childWrap.appendChild(buildTreeLevel(item.children, item.path));
       row.addEventListener('click', (e) => {
         if (e.target.closest('.row-delete')) return;
         selectedFolder = item.path;
@@ -1418,6 +1485,25 @@ function buildTreeLevel(items) {
         row.classList.add('dragging');
       });
       row.addEventListener('dragend', () => row.classList.remove('dragging'));
+      row.addEventListener('dragover', (e) => {
+        if (!e.dataTransfer.types.includes(DRAG_TYPE)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = 'move';
+        const below = e.offsetY > row.offsetHeight / 2;
+        row.classList.toggle('drop-below', below);
+        row.classList.toggle('drop-above', !below);
+      });
+      row.addEventListener('dragleave', () => row.classList.remove('drop-above', 'drop-below'));
+      row.addEventListener('drop', async (e) => {
+        if (!e.dataTransfer.types.includes(DRAG_TYPE)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const below = row.classList.contains('drop-below');
+        row.classList.remove('drop-above', 'drop-below');
+        const src = e.dataTransfer.getData(DRAG_TYPE);
+        if (src && src !== item.path) await reorderNote(src, item, below, row);
+      });
       row.innerHTML = `<span class="chevron"></span><span class="row-name">${escapeHtml(item.name)}</span>` +
         `<button class="row-delete" title="Move to trash"><svg width="14" height="14" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
       row.addEventListener('click', (e) => {
@@ -1760,6 +1846,7 @@ async function resetDefaults() {
   sidebarHidden = false;
   splitRatio = 0.5;
   pinned = [];
+  noteOrder = {};
   window.api.resetZoom();
   applyInlineTitle();
   applyLineNumbers();
@@ -1891,7 +1978,15 @@ treeEl.addEventListener('dragover', (e) => {
   treeEl.classList.add('drop-root');
 });
 treeEl.addEventListener('dragleave', (e) => {
-  if (e.target === treeEl) treeEl.classList.remove('drop-root');
+  if (!treeEl.contains(e.relatedTarget)) treeEl.classList.remove('drop-root');
+});
+
+// A drag can end anywhere (Esc, drop outside a target) — always clear leftover highlights
+document.addEventListener('dragend', () => {
+  treeEl.classList.remove('drop-root');
+  for (const el of document.querySelectorAll('.drop-target, .drop-above, .drop-below')) {
+    el.classList.remove('drop-target', 'drop-above', 'drop-below');
+  }
 });
 treeEl.addEventListener('drop', async (e) => {
   treeEl.classList.remove('drop-root');

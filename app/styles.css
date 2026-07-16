@@ -206,6 +206,8 @@ button {
   justify-content: center;
 }
 .tree-row:hover .row-delete { display: flex; }
+.tree-row.drop-above { box-shadow: inset 0 2px 0 0 var(--muted); }
+.tree-row.drop-below { box-shadow: inset 0 -2px 0 0 var(--muted); }
 .tree-row .row-delete:hover { color: var(--danger); background: var(--sidebar-active); }
 
 .pinned-label { padding: 4px 8px 2px; margin-bottom: 2px; }
