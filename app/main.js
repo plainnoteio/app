@@ -10,7 +10,12 @@ let win = null;
 function loadConfig() {
   try {
     const cfg = JSON.parse(fs.readFileSync(configFile(), 'utf8'));
-    if (cfg.vaultPath && fs.existsSync(cfg.vaultPath)) return cfg.vaultPath;
+    if (cfg.vaultPath && fs.existsSync(cfg.vaultPath)) {
+      // Dev runs must never open the real vault, even if the config points there
+      const realVault = path.join(app.getPath('documents'), 'Plainnote');
+      if (!app.isPackaged && path.resolve(cfg.vaultPath) === realVault) return null;
+      return cfg.vaultPath;
+    }
   } catch (_) {}
   return null;
 }
@@ -42,7 +47,7 @@ Happy writing ✏️
 
 function ensureVault() {
   if (!vaultPath) {
-    vaultPath = path.join(app.getPath('documents'), 'Plainnote');
+    vaultPath = path.join(app.getPath('documents'), app.isPackaged ? 'Plainnote' : 'Plainnote-dev');
   }
   if (!fs.existsSync(vaultPath)) {
     fs.mkdirSync(vaultPath, { recursive: true });
