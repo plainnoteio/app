@@ -1928,6 +1928,17 @@ function showStats() {
   statsOverlay.hidden = false;
 }
 
+const searchClearEl = $('#search-clear');
+searchEl.addEventListener('input', () => {
+  searchClearEl.hidden = !searchEl.value;
+});
+searchClearEl.addEventListener('click', () => {
+  searchEl.value = '';
+  searchClearEl.hidden = true;
+  searchEl.focus();
+  runSearch();
+});
+
 searchEl.addEventListener('input', runSearch);
 searchEl.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
