@@ -1031,19 +1031,14 @@ async function commitRename(pane, inputEl) {
 }
 
 async function createNewNote(name) {
-  const rel = await window.api.createNote(selectedFolder, name || 'Untitled');
+  if (!name) {
+    name = await askName('New note', 'Untitled', 'Create');
+    if (!name) return;
+  }
+  const rel = await window.api.createNote(selectedFolder, name);
   await refreshAll();
   const pane = focusedPane || panes[0];
   openNoteInPane(pane, rel);
-  if (!name) {
-    if (inlineTitleOn) {
-      pane.inlineTitleEl.focus();
-      pane.inlineTitleEl.select();
-    } else {
-      const newName = await askName('Name your note', 'Untitled', 'Rename');
-      if (newName && newName !== 'Untitled') await renameNoteAt(rel, newName);
-    }
-  }
 }
 
 async function renameNoteAt(path, newName) {
@@ -1402,7 +1397,7 @@ function buildTreeLevel(items) {
             const name = await askName('Rename folder', item.name, 'Rename');
             if (name && name !== item.name) await renameFolderAt(item.path, name);
           } },
-          { label: 'New note here', action: () => {
+          { label: 'New note here…', action: () => {
             selectedFolder = item.path;
             collapsed.delete(item.path);
             createNewNote();
@@ -1669,7 +1664,7 @@ treeEl.addEventListener('contextmenu', (e) => {
   e.preventDefault();
   selectedFolder = '';
   showMenu(e.clientX, e.clientY, [
-    { label: 'New note', action: () => createNewNote() },
+    { label: 'New note…', action: () => createNewNote() },
     { label: 'New folder…', action: createNewFolder },
   ]);
 });
