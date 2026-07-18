@@ -624,7 +624,7 @@ body.inline-title .pane-inline-title { display: block; }
 .markdown .live-line > * { margin: 0; }
 .markdown .live-line ul, .markdown .live-line ol { margin: 0; padding-left: 1.5em; }
 .markdown .live-line li { margin: 0; }
-.markdown .live-line blockquote { margin: 0; }
+.markdown .live-line blockquote, .markdown .live-line blockquote p { margin: 0; }
 .live-line.blank { min-height: 0.45em; }
 .markdown .live-line.live-h1 { margin-top: 1.68rem; margin-bottom: 0.24rem; }
 .markdown .live-line.live-h2 { margin-top: 1.26rem; }
@@ -646,6 +646,33 @@ body.inline-title .pane-inline-title { display: block; }
   padding: 1px 10px;
   margin: 0 -10px;
   caret-color: var(--text);
+}
+
+/* Editing a code block or quote keeps the rendered block's box so the text
+   stays put when the line is activated (the textarea sits inside the box). */
+.live-edit-code {
+  background: var(--code-bg);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin: 0;
+}
+.live-edit-code .live-editor {
+  padding: 0;
+  margin: 0;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.84em; /* match the rendered <pre><code> size so text doesn't grow */
+  line-height: 1.5675rem; /* = the rendered <pre> line box (1.65 * 0.95rem) */
+}
+.live-edit-quote {
+  border-left: 3px solid #d4d4d0;
+  padding: 2px 16px;
+  margin: 0;
+}
+body.theme-dark .live-edit-quote { border-left-color: #55554f; }
+.live-edit-quote .live-editor {
+  padding: 0;
+  margin: 0;
+  color: var(--text-soft);
 }
 
 .live-hint { color: var(--muted); font-size: 0.9rem; padding: 8px 0; cursor: text; }

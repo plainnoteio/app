@@ -459,11 +459,19 @@ function renderPane(pane) {
       ta.className = 'live-editor';
       ta.rows = 1;
       ta.value = text;
+      ta._activatedValue = text; // if still equal, user hasn't typed → Cmd+Z undoes the note
       wirePaneEditor(pane, ta, ui);
       const wrap = document.createElement('div');
       wrap.className = 'live-edit-wrap';
       const whm = text.match(/^(#{1,6})\s/);
       if (whm) wrap.classList.add('live-h' + Math.min(whm[1].length, 3));
+      // Match the rendered block box so text doesn't jump on activation (code <pre>, quote border).
+      const firstLine = text.split('\n', 1)[0];
+      if (/^(```|~~~)/.test(firstLine.trim()) || /^(    |\t)/.test(firstLine)) {
+        wrap.classList.add('live-edit-code');
+      } else if (/^\s*>/.test(firstLine)) {
+        wrap.classList.add('live-edit-quote');
+      }
       wrap.dataset.ln = u.start + 1;
       wrap.appendChild(ta);
       pane.contentEl.appendChild(wrap);
@@ -539,13 +547,14 @@ function enterLivePane(pane) {
 
 const undoStacks = new Map();
 
-function pushUndo(path, prevContent) {
+function pushUndo(path, prevContent, force) {
   let st = undoStacks.get(path);
   if (!st) {
     st = { stack: [], redo: [], last: 0 };
     undoStacks.set(path, st);
   }
-  if (Date.now() - st.last < 800) return;
+  // Typing coalesces to one checkpoint per 800ms; discrete edits pass force.
+  if (!force && Date.now() - st.last < 800) return;
   if (st.stack[st.stack.length - 1] === prevContent) return;
   st.stack.push(prevContent);
   if (st.stack.length > 200) st.stack.shift();
@@ -645,7 +654,121 @@ function deactivatePane(pane) {
   }
 }
 
+/* ---------- live-mode selection editing (edits a selection over rendered lines) ---------- */
+
+function liveLineEl(pane, node) {
+  const host = node.nodeType === 3 ? node.parentElement : node;
+  const lineEl = host && host.closest ? host.closest('.live-line') : null;
+  if (!lineEl || !pane.contentEl.contains(lineEl)) return null;
+  return lineEl;
+}
+
+// Exact source column when the line maps 1:1, else null.
+function livePointToSource(pane, node, offset) {
+  const lineEl = liveLineEl(pane, node);
+  if (!lineEl) return null;
+  const ln = parseInt(lineEl.dataset.ln, 10) - 1;
+  const u = pane.units.find((x) => ln >= x.start && ln <= x.end);
+  if (!u) return null;
+  const src = pane.lines.slice(u.start, u.end + 1).join('\n');
+  let rendered = lineEl.textContent;
+  if (rendered.endsWith('\n')) rendered = rendered.slice(0, -1);
+  if (rendered !== src) return null; // not 1:1 mappable — don't risk corrupting it
+  const r = document.createRange();
+  r.selectNodeContents(lineEl);
+  try { r.setEnd(node, offset); } catch (_) { return null; }
+  return { line: u.start, col: Math.min(r.toString().length, src.length) };
+}
+
+// Exact {line, col} on a 1:1 line, else the formatted line's unit + start/end flags.
+function liveBoundary(pane, node, offset) {
+  const exact = livePointToSource(pane, node, offset);
+  if (exact) return { line: exact.line, col: exact.col, exact: true };
+  const lineEl = liveLineEl(pane, node);
+  if (!lineEl) return null;
+  const ln = parseInt(lineEl.dataset.ln, 10) - 1;
+  const u = pane.units.find((x) => ln >= x.start && ln <= x.end);
+  if (!u) return null;
+  let rendered = lineEl.textContent;
+  if (rendered.endsWith('\n')) rendered = rendered.slice(0, -1);
+  const r = document.createRange();
+  r.selectNodeContents(lineEl);
+  let col = 0;
+  try { r.setEnd(node, offset); col = r.toString().length; } catch (_) { col = 0; }
+  return { unit: u, atStart: col <= 0, atEnd: col >= rendered.length, exact: false };
+}
+
+function liveSelectionEdit(pane, e) {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return false;
+  const range = sel.getRangeAt(0);
+  if (!pane.contentEl.contains(range.startContainer) || !pane.contentEl.contains(range.endContainer)) return false;
+
+  const key = e.key;
+  const plain = !e.metaKey && !e.ctrlKey && !e.altKey;
+  const isDelete = plain && (key === 'Backspace' || key === 'Delete');
+  const isEnter = plain && key === 'Enter';
+  const isChar = plain && key.length === 1;
+  if (!isDelete && !isEnter && !isChar) return false;
+
+  // A DOM range is ordered, so a precedes b — no swap needed.
+  const a = liveBoundary(pane, range.startContainer, range.startOffset);
+  const b = liveBoundary(pane, range.endContainer, range.endOffset);
+  if (!a || !b) return false;
+
+  let aLine, aCol, bLine, bCol;
+  if (a.exact) {
+    aLine = a.line; aCol = a.col;
+  } else if (a.atEnd) {
+    aLine = a.unit.end; aCol = pane.lines[a.unit.end].length; // starts at line end — keep it
+  } else {
+    aLine = a.unit.start; aCol = 0; // formatted line touched — remove it in full
+  }
+  if (b.exact) {
+    bLine = b.line; bCol = b.col;
+  } else if (b.atStart) {
+    bLine = b.unit.start; bCol = 0; // ends at line start — keep it
+  } else {
+    bLine = b.unit.end; bCol = pane.lines[b.unit.end].length;
+  }
+
+  // Snapping may have collapsed the range — nothing to delete.
+  if (aLine > bLine || (aLine === bLine && aCol >= bCol)) return false;
+
+  const prefix = pane.lines[aLine].slice(0, aCol);
+  const suffix = pane.lines[bLine].slice(bCol);
+  e.preventDefault();
+  e.stopPropagation();
+  const note = noteByPath(pane.path);
+  if (note) pushUndo(note.path, note.content, true); // one undo point for the edit
+
+  if (isEnter) {
+    pane.lines.splice(aLine, bLine - aLine + 1, prefix, suffix);
+    syncPane(pane);
+    activatePaneLine(pane, aLine + 1, 0);
+    return true;
+  }
+  const insert = isChar ? key : '';
+  const merged = (prefix + insert + suffix).split('\n');
+  pane.lines.splice(aLine, bLine - aLine + 1, ...merged);
+  syncPane(pane);
+  activatePaneLine(pane, aLine, (prefix + insert).length);
+  return true;
+}
+
 function liveEditorStyle(ta) {
+  const wrap = ta.parentElement;
+  if (wrap && wrap.classList.contains('live-edit-code')) {
+    // The wrap replicates the <pre> box; the textarea just holds monospace text.
+    ta.style.fontSize = '';
+    ta.style.fontWeight = '';
+    ta.style.lineHeight = '';
+    ta.style.marginTop = '';
+    ta.style.marginBottom = '';
+    ta.style.paddingLeft = '';
+    ta.style.fontFamily = 'ui-monospace, "SF Mono", Menlo, monospace';
+    return;
+  }
   const first = ta.value.split('\n', 1)[0];
   const m = first.match(/^(#{1,6})\s/);
   if (m) {
@@ -1261,6 +1384,17 @@ document.addEventListener('keydown', (e) => {
     if (so) so.hidden = true;
   }
 });
+
+// Capture-phase so a selection edit runs before the app sees the key; no-op when an editor is focused.
+document.addEventListener('keydown', (e) => {
+  const pane = focusedPane;
+  if (!pane || pane.mode !== 'live') return;
+  const ae = document.activeElement;
+  if (ae && (ae.tagName === 'TEXTAREA' || ae.tagName === 'INPUT')) return;
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  liveSelectionEdit(pane, e);
+}, true);
 
 /* ---------- sidebar tree ---------- */
 
@@ -2057,12 +2191,15 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'b') { e.preventDefault(); toggleSidebar(); }
   if (e.key === '[') { e.preventDefault(); paneGoBack(focusedPane || panes[0]); }
   if (e.key === ']') { e.preventDefault(); paneGoForward(focusedPane || panes[0]); }
-  if (e.key === 'z') {
+  if (e.key === 'z' || e.key === 'y') {
     const ae = document.activeElement;
-    if (ae && ae.classList && ae.classList.contains('live-editor')) return;
+    // Let a line editor with un-committed typing use its own native undo.
+    if (ae && ae.classList && ae.classList.contains('live-editor') &&
+        ae.value !== ae._activatedValue) return;
     e.preventDefault();
     const pane = focusedPane || panes[0];
-    if (e.shiftKey) redoPane(pane);
+    const redo = e.key === 'y' || e.shiftKey; // Cmd+Y or Cmd+Shift+Z
+    if (redo) redoPane(pane);
     else undoPane(pane);
   }
   if (e.key === 'f' && e.shiftKey) { e.preventDefault(); searchEl.focus(); }
