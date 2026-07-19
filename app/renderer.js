@@ -695,7 +695,60 @@ function liveBoundary(pane, node, offset) {
   r.selectNodeContents(lineEl);
   let col = 0;
   try { r.setEnd(node, offset); col = r.toString().length; } catch (_) { col = 0; }
+  if (u.start === u.end) {
+    const src = pane.lines[u.start];
+    const mk = src.match(/^(\s*(?:#{1,6} |[-*+] |\d+[.)] |> ?))([\s\S]*)$/);
+    if (mk && mk[2].length && rendered.trim() === mk[2]) {
+      const rc = col - (rendered.length - rendered.trimStart().length); // drop wrapper's leading newline
+      return { line: u.start, col: rc <= 0 ? 0 : Math.min(mk[1].length + rc, src.length), exact: true };
+    }
+  }
   return { unit: u, atStart: col <= 0, atEnd: col >= rendered.length, exact: false };
+}
+
+function resolveLiveRange(pane, range) {
+  const a = liveBoundary(pane, range.startContainer, range.startOffset);
+  const b = liveBoundary(pane, range.endContainer, range.endOffset);
+  if (!a || !b) return null;
+  let aLine, aCol, bLine, bCol;
+  if (a.exact) {
+    aLine = a.line; aCol = a.col;
+  } else if (a.atEnd) {
+    aLine = a.unit.end; aCol = pane.lines[a.unit.end].length; // starts at line end — keep it
+  } else {
+    aLine = a.unit.start; aCol = 0; // formatted line touched — take it in full
+  }
+  if (b.exact) {
+    bLine = b.line; bCol = b.col;
+  } else if (b.atStart) {
+    bLine = b.unit.start; bCol = 0; // ends at line start — keep it
+  } else {
+    bLine = b.unit.end; bCol = pane.lines[b.unit.end].length;
+  }
+  if (aLine > bLine || (aLine === bLine && aCol >= bCol)) return null; // snapped to empty
+  return { aLine, aCol, bLine, bCol };
+}
+
+// Source markdown under a rendered selection (so copy/cut round-trips, not the mangled DOM text).
+function liveSelectionText(pane, range) {
+  const r = resolveLiveRange(pane, range);
+  if (!r) return null;
+  if (r.aLine === r.bLine) return pane.lines[r.aLine].slice(r.aCol, r.bCol);
+  const parts = [pane.lines[r.aLine].slice(r.aCol)];
+  for (let i = r.aLine + 1; i < r.bLine; i++) parts.push(pane.lines[i]);
+  parts.push(pane.lines[r.bLine].slice(0, r.bCol));
+  return parts.join('\n');
+}
+
+function deleteLiveRange(pane, r) {
+  const note = noteByPath(pane.path);
+  if (note) pushUndo(note.path, note.content, true); // one undo point for the edit
+  const prefix = pane.lines[r.aLine].slice(0, r.aCol);
+  const suffix = pane.lines[r.bLine].slice(r.bCol);
+  const merged = (prefix + suffix).split('\n');
+  pane.lines.splice(r.aLine, r.bLine - r.aLine + 1, ...merged);
+  syncPane(pane);
+  activatePaneLine(pane, r.aLine, prefix.length);
 }
 
 function liveSelectionEdit(pane, e) {
@@ -711,36 +764,17 @@ function liveSelectionEdit(pane, e) {
   const isChar = plain && key.length === 1;
   if (!isDelete && !isEnter && !isChar) return false;
 
-  // A DOM range is ordered, so a precedes b — no swap needed.
-  const a = liveBoundary(pane, range.startContainer, range.startOffset);
-  const b = liveBoundary(pane, range.endContainer, range.endOffset);
-  if (!a || !b) return false;
-
-  let aLine, aCol, bLine, bCol;
-  if (a.exact) {
-    aLine = a.line; aCol = a.col;
-  } else if (a.atEnd) {
-    aLine = a.unit.end; aCol = pane.lines[a.unit.end].length; // starts at line end — keep it
-  } else {
-    aLine = a.unit.start; aCol = 0; // formatted line touched — remove it in full
-  }
-  if (b.exact) {
-    bLine = b.line; bCol = b.col;
-  } else if (b.atStart) {
-    bLine = b.unit.start; bCol = 0; // ends at line start — keep it
-  } else {
-    bLine = b.unit.end; bCol = pane.lines[b.unit.end].length;
-  }
-
-  // Snapping may have collapsed the range — nothing to delete.
-  if (aLine > bLine || (aLine === bLine && aCol >= bCol)) return false;
-
-  const prefix = pane.lines[aLine].slice(0, aCol);
-  const suffix = pane.lines[bLine].slice(bCol);
+  const r = resolveLiveRange(pane, range);
+  if (!r) return false;
   e.preventDefault();
   e.stopPropagation();
+  if (isDelete) { deleteLiveRange(pane, r); return true; }
+
+  const { aLine, aCol, bLine, bCol } = r;
+  const prefix = pane.lines[aLine].slice(0, aCol);
+  const suffix = pane.lines[bLine].slice(bCol);
   const note = noteByPath(pane.path);
-  if (note) pushUndo(note.path, note.content, true); // one undo point for the edit
+  if (note) pushUndo(note.path, note.content, true);
 
   if (isEnter) {
     pane.lines.splice(aLine, bLine - aLine + 1, prefix, suffix);
@@ -748,11 +782,28 @@ function liveSelectionEdit(pane, e) {
     activatePaneLine(pane, aLine + 1, 0);
     return true;
   }
-  const insert = isChar ? key : '';
-  const merged = (prefix + insert + suffix).split('\n');
+  const merged = (prefix + key + suffix).split('\n');
   pane.lines.splice(aLine, bLine - aLine + 1, ...merged);
   syncPane(pane);
-  activatePaneLine(pane, aLine, (prefix + insert).length);
+  activatePaneLine(pane, aLine, (prefix + key).length);
+  return true;
+}
+
+// Cmd+C / Cmd+X over rendered lines: put source markdown on the clipboard (native
+// copy would serialize the rendered DOM — losing '#' markers, adding blank lines).
+function liveClipboard(pane, e, isCut) {
+  const ae = document.activeElement;
+  if (ae && ae.tagName === 'INPUT') return false; // search / find fields use native copy
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return false;
+  const range = sel.getRangeAt(0);
+  if (!pane.contentEl.contains(range.startContainer) || !pane.contentEl.contains(range.endContainer)) return false;
+  const r = resolveLiveRange(pane, range);
+  if (!r) return false;
+  const text = liveSelectionText(pane, range);
+  e.preventDefault();
+  e.clipboardData.setData('text/plain', text);
+  if (isCut) deleteLiveRange(pane, r);
   return true;
 }
 
@@ -1385,16 +1436,27 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// Capture-phase so a selection edit runs before the app sees the key; no-op when an editor is focused.
+// Capture-phase so a selection edit runs before the app sees the key. A textarea's
+// own selection isn't in window.getSelection(), so a non-collapsed doc selection means
+// rendered lines are selected — handle it even while a line editor is focused.
 document.addEventListener('keydown', (e) => {
   const pane = focusedPane;
   if (!pane || pane.mode !== 'live') return;
   const ae = document.activeElement;
-  if (ae && (ae.tagName === 'TEXTAREA' || ae.tagName === 'INPUT')) return;
+  if (ae && ae.tagName === 'INPUT') return; // search / find / rename fields
   const sel = window.getSelection();
   if (!sel || sel.isCollapsed) return;
   liveSelectionEdit(pane, e);
 }, true);
+
+document.addEventListener('copy', (e) => {
+  const pane = focusedPane;
+  if (pane && pane.mode === 'live') liveClipboard(pane, e, false);
+});
+document.addEventListener('cut', (e) => {
+  const pane = focusedPane;
+  if (pane && pane.mode === 'live') liveClipboard(pane, e, true);
+});
 
 /* ---------- sidebar tree ---------- */
 
@@ -2131,10 +2193,19 @@ treeEl.addEventListener('dragleave', (e) => {
 document.addEventListener('contextmenu', (e) => {
   if (e.defaultPrevented) return;
   const editable = e.target.closest('input, textarea, [contenteditable="true"]');
-  const hasSelection = window.getSelection().toString().length > 0;
-  if (!editable && !hasSelection) return;
+  const sel = window.getSelection();
+  if (!editable && !sel.toString().length) return;
   e.preventDefault();
-  window.api.showEditMenu(!!editable);
+  // For a rendered live selection, copy the source markdown, not the mangled DOM text.
+  let copyText = null;
+  const pane = focusedPane;
+  if (!editable && pane && pane.mode === 'live' && sel.rangeCount) {
+    const range = sel.getRangeAt(0);
+    if (pane.contentEl.contains(range.startContainer) && pane.contentEl.contains(range.endContainer)) {
+      copyText = liveSelectionText(pane, range);
+    }
+  }
+  window.api.showEditMenu(!!editable, copyText);
 });
 
 // A drag can end anywhere (Esc, drop outside a target) — always clear leftover highlights

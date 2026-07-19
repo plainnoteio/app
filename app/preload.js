@@ -28,7 +28,7 @@ contextBridge.exposeInMainWorld('api', {
   installUpdate: () => ipcRenderer.send('update:install'),
   checkForUpdates: () => ipcRenderer.invoke('update:check'),
   resetZoom: () => ipcRenderer.send('app:reset-zoom'),
-  showEditMenu: (isEditable) => ipcRenderer.send('menu:edit', isEditable),
+  showEditMenu: (isEditable, copyText) => ipcRenderer.send('menu:edit', isEditable, copyText),
   getVersion: () => ipcRenderer.invoke('app:version'),
 });
 
