@@ -1036,6 +1036,17 @@ function acceptSuggest() {
   ta.dispatchEvent(new Event('input'));
 }
 
+// Line/col of an absolute character offset within a set of lines.
+function offsetToLineCol(lines, offset) {
+  let o = offset;
+  for (let i = 0; i < lines.length; i++) {
+    if (o <= lines[i].length) return { line: i, col: o };
+    o -= lines[i].length + 1;
+  }
+  const last = lines.length - 1;
+  return { line: last, col: lines[last].length };
+}
+
 function wirePaneEditor(pane, ta, ui) {
   const unit = pane.units[ui];
   const isFence = () => /^(```|~~~)/.test((ta.value.trim().split('\n')[0] || ''));
@@ -1048,6 +1059,23 @@ function wirePaneEditor(pane, ta, ui) {
     autosize(ta);
     syncPane(pane);
     updateWikiSuggest(pane, ta);
+  });
+
+  // Paste of multiple lines: split into separate lines so they render, keeping
+  // only the caret's line active — otherwise the whole block stays one raw unit.
+  ta.addEventListener('paste', (e) => {
+    const text = (e.clipboardData ? e.clipboardData.getData('text/plain') : '').replace(/\r\n?/g, '\n');
+    if (!text.includes('\n')) return; // single line: let the native paste + input run
+    e.preventDefault();
+    const before = ta.value.slice(0, ta.selectionStart);
+    const after = ta.value.slice(ta.selectionEnd);
+    const merged = (before + text + after).split('\n');
+    const caret = offsetToLineCol(merged, (before + text).length);
+    const note = noteByPath(pane.path);
+    if (note) pushUndo(note.path, note.content, true);
+    pane.lines.splice(unit.start, unit.end - unit.start + 1, ...merged);
+    syncPane(pane);
+    activatePaneLine(pane, unit.start + caret.line, caret.col);
   });
 
   ta.addEventListener('blur', () => {
