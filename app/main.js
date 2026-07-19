@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu, clipboard } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
@@ -167,10 +167,13 @@ function registerIpc() {
     if (win && !win.isDestroyed()) win.webContents.setZoomFactor(DEFAULT_ZOOM);
   });
 
-  ipcMain.on('menu:edit', (_e, isEditable) => {
+  ipcMain.on('menu:edit', (_e, isEditable, copyText) => {
+    const copy = copyText != null
+      ? { label: 'Copy', click: () => clipboard.writeText(copyText) } // source markdown, not rendered text
+      : { role: 'copy' };
     const template = isEditable
       ? [{ role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { type: 'separator' }, { role: 'selectAll' }]
-      : [{ role: 'copy' }];
+      : [copy];
     Menu.buildFromTemplate(template).popup({ window: win });
   });
 
