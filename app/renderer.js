@@ -1291,7 +1291,7 @@ async function renameFolderAt(path, newName) {
 }
 
 async function deleteFolderAt(item) {
-  if (!confirm(`Move "${item.name}" and everything inside it to the trash?`)) return;
+  if (!(await askConfirm(`Move "${item.name}" and everything inside it to the trash?`))) return;
   try {
     await window.api.deleteFolder(item.path);
     const inside = (p) => p === item.path || p.startsWith(item.path + '/');
@@ -1623,14 +1623,18 @@ function noteContextMenu(e, item) {
       { label: 'Export as HTML…', action: () => exportNote(item, 'html') },
     ] },
     { label: 'Move to trash', danger: true, action: async () => {
-      if (!confirm(`Move "${item.name}" to the trash?`)) return;
-      await window.api.deleteNote(item.path);
-      pinned = pinned.filter((p) => p !== item.path);
-      savePinned();
-      for (const p of panes) {
-        if (p.path === item.path) p.path = null;
+      if (!(await askConfirm(`Move "${item.name}" to the trash?`))) return;
+      try {
+        await window.api.deleteNote(item.path);
+        pinned = pinned.filter((p) => p !== item.path);
+        savePinned();
+        for (const p of panes) {
+          if (p.path === item.path) p.path = null;
+        }
+        await refreshAll();
+      } catch (err) {
+        alert(err.message.replace(/^.*Error: /, ''));
       }
-      await refreshAll();
     } },
   ]);
 }
@@ -1704,6 +1708,9 @@ function buildTreeLevel(items, parentPath = '') {
       row.dataset.path = item.path;
       row.draggable = true;
       row.addEventListener('dragstart', (e) => {
+        // Don't start a row drag when grabbing the trash button, or the drag
+        // eats its click and the delete never fires.
+        if (e.target.closest('.row-delete')) { e.preventDefault(); return; }
         e.dataTransfer.setData(DRAG_TYPE, item.path);
         e.dataTransfer.effectAllowed = 'move';
         row.classList.add('dragging');
@@ -1736,14 +1743,18 @@ function buildTreeLevel(items, parentPath = '') {
       });
       row.addEventListener('contextmenu', (e) => noteContextMenu(e, { path: item.path, name: item.name }));
       row.querySelector('.row-delete').addEventListener('click', async () => {
-        if (!confirm(`Move "${item.name}" to the trash?`)) return;
-        await window.api.deleteNote(item.path);
-        pinned = pinned.filter((p) => p !== item.path);
-        savePinned();
-        for (const p of panes) {
-          if (p.path === item.path) p.path = null;
+        if (!(await askConfirm(`Move "${item.name}" to the trash?`))) return;
+        try {
+          await window.api.deleteNote(item.path);
+          pinned = pinned.filter((p) => p !== item.path);
+          savePinned();
+          for (const p of panes) {
+            if (p.path === item.path) p.path = null;
+          }
+          await refreshAll();
+        } catch (err) {
+          alert(err.message.replace(/^.*Error: /, ''));
         }
-        await refreshAll();
       });
       frag.appendChild(row);
     }
@@ -1952,6 +1963,38 @@ function askName(label, def = '', okText = 'Create') {
     $('#modal-ok').onclick = () => done(input.value.trim() || null);
     $('#modal-cancel').onclick = () => done(null);
     overlay.onclick = (e) => { if (e.target === overlay) done(null); };
+  });
+}
+
+// In-app confirm. Native confirm() is suppressed by Chromium when triggered from
+// a drag-capable element (the sidebar rows), so deletes silently did nothing.
+function askConfirm(message, okText = 'Delete') {
+  return new Promise((resolve) => {
+    const overlay = $('#modal-overlay');
+    const input = $('#modal-input');
+    $('#modal-label').textContent = message;
+    $('#modal-ok').textContent = okText;
+    input.hidden = true;
+    overlay.hidden = false;
+    $('#modal-ok').focus();
+
+    function done(value) {
+      overlay.hidden = true;
+      input.hidden = false;
+      document.removeEventListener('keydown', onKey, true);
+      $('#modal-ok').onclick = null;
+      $('#modal-cancel').onclick = null;
+      overlay.onclick = null;
+      resolve(value);
+    }
+    function onKey(e) {
+      if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); done(true); }
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(false); }
+    }
+    document.addEventListener('keydown', onKey, true);
+    $('#modal-ok').onclick = () => done(true);
+    $('#modal-cancel').onclick = () => done(false);
+    overlay.onclick = (e) => { if (e.target === overlay) done(false); };
   });
 }
 
