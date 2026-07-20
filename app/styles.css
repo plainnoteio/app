@@ -625,11 +625,7 @@ body.inline-title .pane-inline-title { display: block; }
 .markdown .live-line ul, .markdown .live-line ol { margin: 0; padding-left: 1.5em; }
 .markdown .live-line li { margin: 0; }
 .markdown .live-line blockquote, .markdown .live-line blockquote p { margin: 0; }
-.live-line.blank { min-height: 0.45em; }
-.markdown .live-line.live-h1 { margin-top: 1.68rem; margin-bottom: 0.24rem; }
-.markdown .live-line.live-h2 { margin-top: 1.26rem; }
-.markdown .live-line.live-h3 { margin-top: 0.98rem; }
-.markdown .live-line.live-h:first-child { margin-top: 0; }
+.live-line.blank { min-height: 1.7rem; }
 
 .live-editor {
   display: block;
@@ -679,10 +675,7 @@ body.theme-dark .live-edit-quote { border-left-color: #55554f; }
 
 body.line-numbers .live-line,
 body.line-numbers .live-edit-wrap { position: relative; }
-body.line-numbers .live-line.blank { min-height: 1.6rem; }
-body.line-numbers .markdown .live-line.live-h1,
-body.line-numbers .markdown .live-line.live-h2,
-body.line-numbers .markdown .live-line.live-h3 { margin-top: 0; margin-bottom: 0; }
+body.line-numbers .live-line.blank { min-height: 1.7rem; }
 body.line-numbers .live-line::before,
 body.line-numbers .live-edit-wrap::before {
   content: attr(data-ln);
@@ -702,7 +695,7 @@ body.line-numbers .live-edit-wrap::before {
 body.line-numbers .live-h1::before { line-height: 2.08rem; }
 body.line-numbers .live-h2::before { line-height: 1.69rem; }
 body.line-numbers .live-h3::before { line-height: 1.43rem; }
-body.line-numbers .live-line.blank::before { line-height: 1.6rem; }
+body.line-numbers .live-line.blank::before { line-height: 1.7rem; }
 
 /* ---------- Backlinks ---------- */
 

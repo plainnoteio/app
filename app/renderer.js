@@ -829,9 +829,8 @@ function liveEditorStyle(ta) {
     ta.style.lineHeight = '1.35';
     ta.style.fontFamily = '';
     ta.style.paddingLeft = '';
-    const level = Math.min(m[1].length, 3);
-    ta.style.marginTop = lineNumbersOn ? '' : (level === 1 ? '1.68rem' : (level === 2 ? '1.26rem' : '0.98rem'));
-    ta.style.marginBottom = lineNumbersOn ? '' : (level === 1 ? '0.24rem' : '');
+    ta.style.marginTop = '';
+    ta.style.marginBottom = '';
     return;
   }
   ta.style.fontSize = '';
