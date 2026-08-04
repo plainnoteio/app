@@ -600,6 +600,44 @@ body.inline-title .pane-inline-title { display: block; }
 .markdown th, .markdown td { border: 1px solid var(--border); padding: 6px 12px; text-align: left; }
 .markdown th { background: var(--code-bg); }
 
+.markdown li.task {
+  list-style: none;
+  margin-left: -1.4em;
+  padding-left: 1.4em;
+  position: relative;
+}
+.markdown li.task.done { color: var(--muted); text-decoration: line-through; }
+.markdown input.task-check {
+  appearance: none;
+  position: absolute;
+  left: 0;
+  top: 0.35em;
+  width: 0.95em;
+  height: 0.95em;
+  margin: 0;
+  border: 1.5px solid var(--muted);
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+  flex: none;
+}
+.markdown input.task-check:hover { border-color: var(--text); }
+.markdown input.task-check:checked {
+  border-color: var(--text-soft);
+  background: var(--text-soft);
+}
+.markdown input.task-check:checked::after {
+  content: "";
+  position: absolute;
+  left: 0.28em;
+  top: 0.08em;
+  width: 0.22em;
+  height: 0.48em;
+  border: solid var(--bg);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
 .markdown a.wikilink {
   text-decoration: none;
   border-bottom: 1.5px solid var(--text);

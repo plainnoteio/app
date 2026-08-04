@@ -42,7 +42,63 @@ function renderMarkdown(src) {
     return `<a class="wikilink${exists ? '' : ' missing'}" data-target="${escapeHtml(target.trim())}">${escapeHtml((alias || target).trim())}</a>`;
   });
   s = s.replace(TAG_RE, (_m, pre, tag) => `${pre}<span class="tag" data-tag="${escapeHtml(tag)}">#${escapeHtml(tag)}</span>`);
-  return window.markdown.render(s);
+  return markTaskItems(window.markdown.render(s));
+}
+
+/* ---------- task lists ( - [ ] / - [x] ) ---------- */
+
+// A source line that is a task item; group 2 is the box contents.
+const TASK_RE = /^(\s*(?:[-*+]|\d+[.)])\s+\[)([ xX])(\][ \t])/;
+
+// marked emits a disabled checkbox and keeps the bullet — make it clickable and tag the <li>.
+function markTaskItems(html) {
+  return html.replace(/<li>(\s*(?:<p>\s*)?)<input ([^>]*?)type="checkbox">/g, (_m, sp, attrs) => {
+    const checked = /checked/.test(attrs);
+    return `<li class="task${checked ? ' done' : ''}">${sp}<input class="task-check" type="checkbox"${checked ? ' checked=""' : ''}>`;
+  });
+}
+
+function toggleTaskLine(line) {
+  return line.replace(TASK_RE, (_m, pre, mark, post) => pre + (mark === ' ' ? 'x' : ' ') + post);
+}
+
+// Source line indexes of task items, skipping fenced code blocks (they render as
+// code, not checkboxes, so counting them would shift the mapping).
+function taskLineIndexes(lines) {
+  const out = [];
+  let fence = false;
+  lines.forEach((line, i) => {
+    if (/^(```|~~~)/.test(line.trim())) fence = !fence;
+    else if (!fence && TASK_RE.test(line)) out.push(i);
+  });
+  return out;
+}
+
+function toggleTask(pane, box) {
+  const note = noteByPath(pane.path);
+  if (!note) return;
+  const lineEl = box.closest('.live-line');
+  if (pane.mode === 'live' && lineEl && pane.contentEl.contains(lineEl)) {
+    const ln = parseInt(lineEl.dataset.ln, 10) - 1;
+    if (!TASK_RE.test(pane.lines[ln] || '')) return;
+    pushUndo(note.path, note.content, true);
+    pane.lines[ln] = toggleTaskLine(pane.lines[ln]);
+    syncPane(pane);
+    const u = pane.units.find((x) => ln >= x.start && ln <= x.end);
+    if (u) lineEl.replaceWith(buildLineEl(pane, u));
+    refreshFindFor(pane);
+    return;
+  }
+  // Read mode renders the whole note at once — map the clicked box to the Nth task line.
+  const idx = [...pane.contentEl.querySelectorAll('input.task-check')].indexOf(box);
+  const lines = note.content.split('\n');
+  const ln = taskLineIndexes(lines)[idx];
+  if (ln === undefined) return;
+  pushUndo(note.path, note.content, true);
+  lines[ln] = toggleTaskLine(lines[ln]);
+  note.content = lines.join('\n');
+  scheduleSave(note.path);
+  applyContentToPanes(note);
 }
 
 function autosize(ta) {
@@ -497,7 +553,7 @@ function buildLineEl(pane, u) {
     div.innerHTML = renderMarkdown(text);
   }
   div.addEventListener('click', (e) => {
-    if (e.target.closest('a, .tag')) return;
+    if (e.target.closest('a, .tag, input.task-check')) return;
     const sel = window.getSelection();
     if (sel && !sel.isCollapsed) return;
     activatePaneLine(pane, parseInt(div.dataset.ln, 10) - 1, 'end');
@@ -1125,8 +1181,8 @@ function wirePaneEditor(pane, ta, ui) {
       e.preventDefault();
       const before = val.slice(0, pos);
       const after = val.slice(ta.selectionEnd);
-      const m = before.match(/^(\s*)([-*+] |\d+[.)] |> ?)(.*)$/);
-      if (m && m[3].trim() === '' && after.trim() === '') {
+      const m = before.match(/^(\s*)([-*+] |\d+[.)] |> ?)(\[[ xX]\] )?(.*)$/);
+      if (m && m[4].trim() === '' && after.trim() === '') {
         pane.lines[unit.start] = '';
         syncPane(pane);
         activatePaneLine(pane, unit.start, 0);
@@ -1134,10 +1190,11 @@ function wirePaneEditor(pane, ta, ui) {
       }
       let newLine = after;
       let caretPos = 0;
-      if (m && m[3].trim() !== '') {
+      if (m && m[4].trim() !== '') {
         let marker = m[2];
         const num = marker.match(/^(\d+)([.)] )$/);
         if (num) marker = (parseInt(num[1], 10) + 1) + num[2];
+        if (m[3]) marker += '[ ] '; // continue a task list with an unchecked box
         newLine = m[1] + marker + after;
         caretPos = (m[1] + marker).length;
       }
@@ -1176,6 +1233,12 @@ function wirePaneEditor(pane, ta, ui) {
 }
 
 function handleRenderedClick(pane, e) {
+  const box = e.target.closest('input.task-check');
+  if (box) {
+    e.preventDefault(); // the box mirrors the source, so toggle there and re-render
+    toggleTask(pane, box);
+    return;
+  }
   const ext = e.target.closest('a[href]');
   if (ext) {
     e.preventDefault();
@@ -1605,6 +1668,11 @@ async function exportNote(item, format) {
     .tag { font-size: 0.82em; background: #e9e9e5; color: #4a4a4a; padding: 1px 8px; border-radius: 99px; }
     table { border-collapse: collapse; } th, td { border: 1px solid #e6e6e2; padding: 6px 12px; text-align: left; }
     hr { border: none; border-top: 1px solid #e6e6e2; margin: 1.5em 0; }
+    li.task { list-style: none; margin-left: -1.4em; padding-left: 1.4em; position: relative; }
+    li.task.done { color: #8f8f8b; text-decoration: line-through; }
+    input.task-check { appearance: none; position: absolute; left: 0; top: 0.35em; width: 0.95em; height: 0.95em; margin: 0; border: 1.5px solid #8f8f8b; border-radius: 4px; }
+    input.task-check:checked { border-color: #4a4a4a; background: #4a4a4a; }
+    input.task-check:checked::after { content: ""; position: absolute; left: 0.28em; top: 0.08em; width: 0.22em; height: 0.48em; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
   </style></head><body>${inlineTitleOn ? `<h1>${escapeHtml(note.name)}</h1>` : ''}${renderMarkdown(note.content)}</body></html>`;
   await window.api.exportNote(note.name, html, format);
 }
